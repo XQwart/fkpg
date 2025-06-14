@@ -1,0 +1,72 @@
+[
+    {
+      "text": "Эх этот мир был некогда спокоен и прекрасен…",
+      "image": "assets/game/images/dialogs/introduction/world_map.png",
+      "sound": "assets/game/sounds/introduction/introduction_0.mp3",
+      "speaker": "Рассказчик",
+      "portrait": "assets/game/images/dialogs/spekers/storyteller.png"
+    },
+    {
+      "text": "Люди, Орки, Гномы, Эльфы и многие другие народы  жили в мире и согласии, процветая на огромных территориях своих королевств и империй",
+      "image": "assets/game/images/dialogs/introduction/world_of_races.png",
+      "sound": "assets/game/sounds/introduction/introduction_1.mp3",
+      "speaker": "Рассказчик",
+      "portrait": "assets/game/images/dialogs/spekers/storyteller.png"
+    },
+    {
+    "text": "Но однажды покой был нарушен. Из тёмных глубин подземелий восстали неведомые твари и монстры, начавшие атаковать мирных жителей и разрушать мир",
+    "image": "assets/game/images/dialogs/introduction/monsters.png",
+    "sound": "assets/game/sounds/introduction/introduction_2.mp3",
+    "speaker": "Рассказчик",
+    "portrait": "assets/game/images/dialogs/spekers/storyteller.png"
+  },
+  {
+    "text": "Сознания жителей этого мира начало искажаться. Они стали агрессивными и враждебными к друг другу",
+    "image": "assets/game/images/dialogs/introduction/races_war.png",
+    "sound": "assets/game/sounds/introduction/introduction_3.mp3",
+    "speaker": "Рассказчик",
+    "portrait": "assets/game/images/dialogs/spekers/storyteller.png"
+  },
+  {
+    "text": "Однако не всё было потеряно. На защиту мира встали легендарные герои, чьи имена звучали в каждой песне бардов",
+    "image": "assets/game/images/dialogs/introduction/top_heros.png",
+    "sound": "assets/game/sounds/introduction/introduction_4.mp3",
+    "speaker": "Рассказчик",
+    "portrait": "assets/game/images/dialogs/spekers/storyteller.png"
+  },
+  {
+    "text": "Вдохновившись их примером, многие люди решили тоже стать героями, наша история как раз об одном из таких",
+    "image": "assets/game/images/dialogs/introduction/top_heros.png",
+    "sound": "assets/game/sounds/introduction/introduction_5.mp3",
+    "speaker": "Рассказчик",
+    "portrait": "assets/game/images/dialogs/spekers/storyteller.png"
+  },
+  {
+    "text": "С детства наш герой восхищался подвигами тех, кто поднимал знамёна справедливости. Он не рождён был в легенде, но в его сердце горел огонь, запылённый рассказами странников о героях прекративших войны",
+    "image": "assets/game/images/dialogs/introduction/top_heros.png",
+    "sound": "assets/game/sounds/introduction/introduction_6.mp3",
+    "speaker": "Рассказчик",
+    "portrait": "assets/game/images/dialogs/spekers/storyteller.png"
+  },
+  {
+    "text": "Когда он повзрослел, то отправился в большой город, где вступил в гильдию искателей приключений. Благодаря своему упорству и отваге, он вскоре стал уважаемым героем Золотого ранга",
+    "image": "assets/game/images/dialogs/introduction/top_heros.png",
+    "sound": "assets/game/sounds/introduction/introduction_7.mp3",
+    "speaker": "Рассказчик",
+    "portrait": "assets/game/images/dialogs/spekers/storyteller.png"
+  },
+  {
+    "text": "Однажды, возвращаясь с задания, он наткнулся на тихую деревушку рядом с которой открылся огромный разлом",
+    "image": "assets/game/images/dialogs/introduction/ambush1.png",
+    "sound": "assets/game/sounds/introduction/introduction_8.mp3",
+    "speaker": "Рассказчик",
+    "portrait": "assets/game/images/dialogs/spekers/storyteller.png"
+  },
+  {
+    "text": "Услышав тревожные шёпоты жителей и почувствовав зов сердца, он собрал верных авантюристов и смельчаков из местных и повёл их к черному провалу в земле.",
+    "image": "assets/game/images/dialogs/introduction/ambush2.png",
+    "sound": "assets/game/sounds/introduction/introduction_9.mp3",
+    "speaker": "Рассказчик",
+    "portrait": "assets/game/images/dialogs/spekers/storyteller.png"
+  }
+] 
