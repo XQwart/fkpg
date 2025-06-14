@@ -14,6 +14,7 @@ from src.models.ui.dialog import get_dialog_manager
 from src.models.config import Config
 from src.core.constants import AssetPaths, GRAVITY, MAX_FALL_SPEED, SAVE_FILE
 from src.core.exceptions import LevelError
+from src.core.cache_manager import get_cache_manager
 
 
 class GameScene(BaseScene):
@@ -61,6 +62,9 @@ class GameScene(BaseScene):
         # Game state
         self._paused = False
         self._debug_mode = False
+        
+        # Cache manager
+        self._cache_manager = get_cache_manager()
     
     def handle_events(self) -> Optional[str]:
         """Process game input events."""
@@ -103,6 +107,9 @@ class GameScene(BaseScene):
     
     def update(self, delta_time: float) -> None:
         """Update game state."""
+        # Update cache manager
+        self._cache_manager.update()
+        
         # Don't update if paused or dialog active
         if self._paused or self._dialog_overlay.is_visible():
             return
@@ -112,9 +119,6 @@ class GameScene(BaseScene):
         
         # Apply physics manually for player and handle collisions
         self._move_and_collide(delta_time)
-        
-        # Handle collisions are now part of move_and_collide
-        # self._handle_collisions()
         
         # Update camera
         self._renderer.camera.set_follow_target(self._player)
@@ -166,6 +170,13 @@ class GameScene(BaseScene):
         
         # Save game state
         self._save_game()
+        
+        # Clean up resources
+        self._entities.empty()
+        
+        # Clean up level
+        if hasattr(self._level, 'cleanup'):
+            self._level.cleanup()
     
     def _create_input_mapping(self) -> None:
         """Create input action mappings."""
@@ -226,7 +237,7 @@ class GameScene(BaseScene):
         # Store position before vertical movement for platform check
         original_y = player.position.y
         
-        # Get collidable geometry
+        # Get collidable geometry using cached groups
         collidable_tiles = self._level.get_all_collidable_tiles()
         platform_tiles = self._level.get_all_platform_tiles()
         hazard_tiles = self._level.get_all_hazard_tiles()

@@ -9,6 +9,7 @@ from src.views.ui.hud import HUDRenderer
 from src.models.entities.player import Player
 from src.models.world.level import Level, Tile
 from src.core.interfaces import IRenderer
+from src.core.cache_manager import get_cache_manager
 
 
 class GameRenderer(IRenderer):
@@ -20,7 +21,7 @@ class GameRenderer(IRenderer):
         self._camera: Optional[Camera] = None
         self._hud_renderer = HUDRenderer()
         self._debug_mode = False
-        self._tile_surface_cache: Dict[Tuple[int, float], pg.Surface] = {}
+        self._cache_manager = get_cache_manager()
     
     def initialize(self, screen: pg.Surface) -> None:
         """Initialize renderer with screen surface."""
@@ -95,11 +96,16 @@ class GameRenderer(IRenderer):
             # Apply layer opacity if needed
             if layer.opacity < 1.0:
                 cache_key = (tile.tile_id or id(tile.image), layer.opacity)
-                tile_surface = self._tile_surface_cache.get(cache_key)
+                
+                # Try to get from cache
+                tile_surface = self._cache_manager.get("tile_surfaces", cache_key)
+                
                 if tile_surface is None:
+                    # Create and cache the surface
                     tile_surface = tile.image.copy()
                     tile_surface.set_alpha(int(255 * layer.opacity))
-                    self._tile_surface_cache[cache_key] = tile_surface
+                    self._cache_manager.put("tile_surfaces", cache_key, tile_surface)
+                
                 surface.blit(tile_surface, screen_rect)
             else:
                 surface.blit(tile.image, screen_rect)
@@ -128,6 +134,11 @@ class GameRenderer(IRenderer):
     def _render_debug(self, surface: pg.Surface, player: Player, entities: pg.sprite.Group) -> None:
         """Render debug information."""
         debug_font = pg.font.Font(None, 20)
+        
+        # Get cache stats
+        cache_stats = self._cache_manager.get_stats()
+        total_cache_memory = cache_stats["total_memory"] / (1024 * 1024)  # Convert to MB
+        
         debug_info = [
             f"FPS: {int(pg.time.Clock().get_fps())}",
             f"Player Pos: ({int(player.position.x)}, {int(player.position.y)})",
@@ -135,7 +146,8 @@ class GameRenderer(IRenderer):
             f"On Ground: {player.on_ground}",
             f"State: {player.current_state.name}",
             f"Entities: {len(entities)}",
-            f"Camera: ({int(self._camera.position.x)}, {int(self._camera.position.y)})"
+            f"Camera: ({int(self._camera.position.x)}, {int(self._camera.position.y)})",
+            f"Cache Memory: {total_cache_memory:.1f} MB"
         ]
         
         y = 10

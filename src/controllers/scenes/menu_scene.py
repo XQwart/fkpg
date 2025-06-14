@@ -44,6 +44,8 @@ class MenuScene(BaseScene):
                 # Check menu item clicks
                 item = self._renderer.get_item_at_position(event.pos)
                 if item and item.enabled:
+                    # Play click sound
+                    self._renderer.play_click_sound()
                     return item.action
             
             elif event.type == MenuRenderer.MUSIC_END_EVENT:

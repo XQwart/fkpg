@@ -14,6 +14,7 @@ from src.core.constants import (
     BASE_MOVEMENT_SPEED, SPRINT_MULTIPLIER, DOUBLE_CLICK_THRESHOLD_MS,
     AssetPaths
 )
+from src.core.cache_manager import get_cache_manager
 
 
 class PlayerState(Enum):
@@ -81,7 +82,13 @@ class Player(Character):
         # Load sword strike sound
         sound_path = str(Path(AssetPaths.GAME_SOUNDS) / "hero_knight" / "sword_strike_prokh.mp3")
         try:
-            self._sword_strike_sound = pg.mixer.Sound(sound_path)
+            # Try to get from cache first
+            cache_manager = get_cache_manager()
+            self._sword_strike_sound = cache_manager.get("sounds", sound_path)
+            
+            if self._sword_strike_sound is None:
+                self._sword_strike_sound = pg.mixer.Sound(sound_path)
+                cache_manager.put("sounds", sound_path, self._sword_strike_sound)
         except Exception as e:
             print(f"Failed to load sword strike sound: {sound_path}", e)
             self._sword_strike_sound = None
@@ -258,7 +265,7 @@ class Player(Character):
     # Private methods
     def _can_attack(self) -> bool:
         """Check if player can initiate an attack."""
-        return self._current_state in {PlayerState.IDLE, PlayerState.WALK, PlayerState.RUN}
+        return self._current_state in {PlayerState.IDLE, PlayerState.WALK, PlayerState.RUN, PlayerState.JUMP}
     
     def _enter_state(self, new_state: PlayerState) -> None:
         """Transition to a new animation state."""
@@ -279,7 +286,8 @@ class Player(Character):
         if self._current_state in {PlayerState.ATTACK_LIGHT_1, PlayerState.ATTACK_LIGHT_2, 
                                    PlayerState.ATTACK_HEAVY, PlayerState.HURT}:
             if self._animations.is_finished():
-                self._enter_state(PlayerState.IDLE)
+                next_state = PlayerState.JUMP if not self.on_ground else PlayerState.IDLE
+                self._enter_state(next_state)
             return
         
         if self._current_state == PlayerState.DEATH:
@@ -301,7 +309,18 @@ class Player(Character):
         self._enter_state(desired_state)
     
     def _load_animations(self) -> AnimationSet:
-        """Load all player animations."""
+        """Load all player animations with caching."""
+        cache_manager = get_cache_manager()
+        cache_key = "player_animations"
+        
+        # Try to get animations from cache
+        cached_animations = cache_manager.get("level_data", cache_key)
+        
+        if cached_animations is not None:
+            # Create new AnimationSet with cached data
+            return AnimationSet(cached_animations.copy())
+        
+        # Load animations
         base_path = Path(AssetPaths.HERO_KNIGHT)
         animation_configs = {
             PlayerState.IDLE: ("idle", PlayerConstants.ANIMATION_FPS["idle"], True),
@@ -320,6 +339,9 @@ class Player(Character):
         for state, (folder, fps, loop) in animation_configs.items():
             frames = self._load_animation_frames(base_path / folder)
             animations[state] = Animation(frames, fps, loop=loop)
+        
+        # Cache the animations
+        cache_manager.put("level_data", cache_key, animations.copy())
         
         return AnimationSet(animations)
     

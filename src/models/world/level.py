@@ -9,6 +9,7 @@ import pytmx
 from src.models.world.tile import Tile, TileProperties, AnimatedTile, TriggerTile
 from src.core.constants import TILE_SIZE
 from src.core.exceptions import LevelError
+from src.core.cache_manager import get_cache_manager
 
 
 class TileLayer:
@@ -121,6 +122,17 @@ class TileLayer:
             tile.kill()
             return True
         return False
+    
+    def cleanup(self) -> None:
+        """Clean up layer resources."""
+        self._tiles.empty()
+        self._collidable_tiles.empty()
+        self._hazard_tiles.empty()
+        self._platform_tiles.empty()
+        for group in self._trigger_tiles.values():
+            group.empty()
+        self._trigger_tiles.clear()
+        self._tile_map.clear()
 
 
 class Level:
@@ -139,6 +151,10 @@ class Level:
         self._tmx_data: Optional[pytmx.TiledMap] = None
         self._tile_size = TILE_SIZE
         self._entities_to_spawn: List[Dict] = []
+        
+        # Use centralized cache manager
+        self._cache_manager = get_cache_manager()
+        self._cache_key_prefix = f"level_{level_id}"
     
     @property
     def level_id(self) -> str:
@@ -195,6 +211,10 @@ class Level:
             self._load_level_properties()
             self._create_tile_layers()
             self._load_object_layers()
+            
+            # Invalidate collision caches when level is loaded
+            self._invalidate_collision_cache()
+            
         except Exception as e:
             raise LevelError(f"Failed to load level from {tmx_path}: {e}")
     
@@ -223,36 +243,60 @@ class Level:
         self._properties[key] = value
     
     def get_all_collidable_tiles(self) -> pg.sprite.Group:
-        """Get all collidable tiles from all layers."""
-        group = pg.sprite.Group()
-        for layer in self._layers.values():
-            if layer.visible:
-                group.add(layer.collidable_tiles)
-        return group
+        """Get all collidable tiles from all layers with caching."""
+        cache_key = f"{self._cache_key_prefix}_collidable"
+        cached_group = self._cache_manager.get("collision_groups", cache_key)
+        
+        if cached_group is None:
+            cached_group = pg.sprite.Group()
+            for layer in self._layers.values():
+                if layer.visible:
+                    cached_group.add(layer.collidable_tiles)
+            self._cache_manager.put("collision_groups", cache_key, cached_group, ttl=5.0)
+        
+        return cached_group
     
     def get_all_hazard_tiles(self) -> pg.sprite.Group:
-        """Get all hazard tiles from all layers."""
-        group = pg.sprite.Group()
-        for layer in self._layers.values():
-            if layer.visible:
-                group.add(layer.hazard_tiles)
-        return group
+        """Get all hazard tiles from all layers with caching."""
+        cache_key = f"{self._cache_key_prefix}_hazard"
+        cached_group = self._cache_manager.get("collision_groups", cache_key)
+        
+        if cached_group is None:
+            cached_group = pg.sprite.Group()
+            for layer in self._layers.values():
+                if layer.visible:
+                    cached_group.add(layer.hazard_tiles)
+            self._cache_manager.put("collision_groups", cache_key, cached_group, ttl=5.0)
+        
+        return cached_group
     
     def get_all_platform_tiles(self) -> pg.sprite.Group:
-        """Get all platform tiles from all layers."""
-        group = pg.sprite.Group()
-        for layer in self._layers.values():
-            if layer.visible:
-                group.add(layer.platform_tiles)
-        return group
+        """Get all platform tiles from all layers with caching."""
+        cache_key = f"{self._cache_key_prefix}_platform"
+        cached_group = self._cache_manager.get("collision_groups", cache_key)
+        
+        if cached_group is None:
+            cached_group = pg.sprite.Group()
+            for layer in self._layers.values():
+                if layer.visible:
+                    cached_group.add(layer.platform_tiles)
+            self._cache_manager.put("collision_groups", cache_key, cached_group, ttl=5.0)
+        
+        return cached_group
     
     def get_all_trigger_tiles(self, trigger_id: str) -> pg.sprite.Group:
-        """Get all trigger tiles with specific ID from all layers."""
-        group = pg.sprite.Group()
-        for layer in self._layers.values():
-            if layer.visible:
-                group.add(layer.get_trigger_tiles(trigger_id))
-        return group
+        """Get all trigger tiles with specific ID from all layers with caching."""
+        cache_key = f"{self._cache_key_prefix}_trigger_{trigger_id}"
+        cached_group = self._cache_manager.get("collision_groups", cache_key)
+        
+        if cached_group is None:
+            cached_group = pg.sprite.Group()
+            for layer in self._layers.values():
+                if layer.visible:
+                    cached_group.add(layer.get_trigger_tiles(trigger_id))
+            self._cache_manager.put("collision_groups", cache_key, cached_group, ttl=5.0)
+        
+        return cached_group
     
     def get_visible_tiles(self, camera_rect: pg.Rect) -> List[Tuple[Tile, TileLayer]]:
         """Get tiles visible in camera view with their layers (indexed lookup)."""
@@ -292,6 +336,37 @@ class Level:
                     return tile
         
         return None
+    
+    def cleanup(self) -> None:
+        """Clean up level resources."""
+        # Clear all layers
+        for layer in self._layers.values():
+            layer.cleanup()
+        self._layers.clear()
+        self._layer_order.clear()
+        
+        # Invalidate all caches related to this level
+        self._invalidate_collision_cache()
+    
+    def _invalidate_collision_cache(self) -> None:
+        """Invalidate collision-related caches."""
+        # Remove all collision caches for this level
+        cache_keys = [
+            f"{self._cache_key_prefix}_collidable",
+            f"{self._cache_key_prefix}_hazard", 
+            f"{self._cache_key_prefix}_platform"
+        ]
+        
+        # Also invalidate trigger caches
+        for layer in self._layers.values():
+            for trigger_id in layer._trigger_tiles.keys():
+                cache_keys.append(f"{self._cache_key_prefix}_trigger_{trigger_id}")
+        
+        # Clear from cache
+        collision_cache = self._cache_manager.get_cache("collision_groups")
+        if collision_cache:
+            for key in cache_keys:
+                collision_cache.remove(key)
     
     def _load_level_properties(self) -> None:
         """Load properties from TMX data."""

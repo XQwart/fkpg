@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import Dict, Optional, Type
 from pathlib import Path
+import gc
 
 from src.controllers.base.scene import BaseScene
 from src.controllers.scenes.menu_scene import MenuScene
@@ -12,6 +13,7 @@ from src.controllers.scenes.dialog_scene import DialogScene
 from src.models.config import Config
 from src.core.constants import SAVE_FILE
 from src.core.exceptions import SceneError
+from src.core.cache_manager import get_cache_manager
 
 
 class SceneManager:
@@ -34,11 +36,15 @@ class SceneManager:
         # Game state
         self._current_level = "tutorial"
         self._saved_data = None
+        
+        # Cache manager
+        self._cache_manager = get_cache_manager()
     
     def run(self) -> None:
         """Run the game loop with scene management."""
         # Start with menu
         current_scene_id = "menu"
+        previous_scene = None
         
         while current_scene_id and current_scene_id != "exit":
             # Get or create scene
@@ -47,13 +53,20 @@ class SceneManager:
             if not scene:
                 raise SceneError(f"Unknown scene: {current_scene_id}")
             
+            # Clean up previous scene if different
+            if previous_scene and previous_scene != scene:
+                self._cleanup_scene(previous_scene)
+            
             # Run scene and get next scene ID
             next_scene_id = scene.run()
             
             # Handle special transitions
+            previous_scene = scene
             current_scene_id = self._handle_transition(current_scene_id, next_scene_id)
         
-        # Clean up
+        # Final cleanup
+        if previous_scene:
+            self._cleanup_scene(previous_scene)
         self._cleanup()
     
     def _get_scene(self, scene_id: str) -> Optional[BaseScene]:
@@ -149,10 +162,43 @@ class SceneManager:
         except (IOError, ValueError):
             self._saved_data = None
     
+    def _cleanup_scene(self, scene: BaseScene) -> None:
+        """Clean up resources for a scene."""
+        # Don't clean up cached scenes (menu, settings)
+        scene_type = type(scene).__name__.lower().replace("scene", "")
+        if scene_type in ["menu", "settings"]:
+            return
+        
+        # For game scenes, clear certain caches
+        if isinstance(scene, GameScene):
+            # Clear collision caches (they have TTL anyway)
+            collision_cache = self._cache_manager.get_cache("collision_groups")
+            if collision_cache:
+                collision_cache.clear()
+            
+            # Optionally clear tile surface cache if memory is high
+            total_memory = self._cache_manager.get_total_memory()
+            if total_memory > 150 * 1024 * 1024:  # 150MB threshold
+                tile_cache = self._cache_manager.get_cache("tile_surfaces")
+                if tile_cache:
+                    # Remove oldest entries to free up space
+                    while tile_cache._total_memory > 30 * 1024 * 1024:  # Keep max 30MB
+                        if not tile_cache._evict_one():
+                            break
+        
+        # Force garbage collection for large scenes
+        gc.collect()
+    
     def _cleanup(self) -> None:
-        """Clean up resources."""
+        """Clean up all resources."""
         # Clear scene cache
         self._scene_cache.clear()
         
         # Save configuration
         self._config.save()
+        
+        # Clear all caches
+        self._cache_manager.clear_all()
+        
+        # Force final garbage collection
+        gc.collect()

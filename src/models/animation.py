@@ -6,6 +6,7 @@ import pygame as pg
 
 from src.core.interfaces import IAnimationState
 from src.core.exceptions import AnimationError
+from src.core.cache_manager import get_cache_manager
 
 
 class Animation(IAnimationState):
@@ -168,8 +169,8 @@ class AnimationSet:
         self._current_animation = animations[self._current_state]
         self._current_animation.start()
         
-        # Cache for flipped frames to avoid per-frame pg.transform.flip allocations
-        self._flip_cache: Dict[Tuple[any, int, bool, bool], pg.Surface] = {}
+        # Use centralized cache manager
+        self._cache_manager = get_cache_manager()
     
     @property
     def current_state(self) -> any:
@@ -222,11 +223,24 @@ class AnimationSet:
         
         if not flip_x and not flip_y:
             return frame
-        key = (self._current_state, self._current_animation.current_frame_index, flip_x, flip_y)
-        cached = self._flip_cache.get(key)
+        
+        # Create cache key
+        cache_key = (
+            id(self),  # Unique ID for this animation set
+            self._current_state,
+            self._current_animation.current_frame_index,
+            flip_x,
+            flip_y
+        )
+        
+        # Try to get from cache
+        cached = self._cache_manager.get("animation_frames", cache_key)
+        
         if cached is None:
+            # Create flipped frame and cache it
             cached = pg.transform.flip(frame, flip_x, flip_y)
-            self._flip_cache[key] = cached
+            self._cache_manager.put("animation_frames", cache_key, cached)
+        
         return cached
     
     def is_finished(self) -> bool:
