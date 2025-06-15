@@ -48,10 +48,6 @@ class MenuScene(BaseScene):
                     self._renderer.play_click_sound()
                     return item.action
             
-            elif event.type == MenuRenderer.MUSIC_END_EVENT:
-                # Start background transition when music ends
-                self._renderer.start_background_transition()
-        
         return None
     
     def update(self, delta_time: float) -> None:

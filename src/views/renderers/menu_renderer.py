@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import List, Tuple, Optional
 from pathlib import Path
-import random
+
 import pygame as pg
 
 from src.core.constants import UIConstants, AssetPaths
@@ -13,19 +13,9 @@ from src.core.exceptions import ResourceError
 
 # Menu assets
 # Menu assets
-# Backgrounds used in a slideshow behind the menu
-MENU_BACKGROUNDS = [
-    "background_1.png",
-    "background_2.png",
-    "background_3.png",
-]
-
-# Music tracks that play while user is in the menu
-MENU_MUSIC_TRACKS = [
-    "menu_soundtrack_1.mp3",
-    "menu_soundtrack_2.mp3",
-    "menu_soundtrack_3.mp3",
-]
+# Single background and music track for the menu
+MENU_BACKGROUND = "background.png"  # place your desired background image here
+MENU_MUSIC_TRACK = "menu_soundtrack.mp3"  # place your desired music file here
 
 
 class MenuItem:
@@ -68,8 +58,7 @@ MENU_BUTTON_IMAGES = {
 class MenuRenderer(IRenderer):
     """Renders main menu with animated backgrounds."""
     
-    # Custom event for music end
-    MUSIC_END_EVENT = pg.USEREVENT + 1
+
     
     def __init__(self) -> None:
         """Initialize menu renderer."""
@@ -81,17 +70,8 @@ class MenuRenderer(IRenderer):
         self._click_sound: Optional[pg.mixer.Sound] = None
         self._last_hovered_item: Optional[MenuItem] = None
         
-        # Background management
-        self._backgrounds: List[pg.Surface] = []
-        self._current_bg_index = 0
-        self._current_bg: Optional[pg.Surface] = None
-        self._next_bg: Optional[pg.Surface] = None
-        
-        # Fade transition
-        self._fade_active = False
-        self._fade_start_time = 0
-        self._fade_duration = UIConstants.MENU_FADE_DURATION_MS
-        self._next_bg_index = 0
+        # Background
+        self._background: Optional[pg.Surface] = None
         
         # Menu items
         self._items: List[MenuItem] = []
@@ -124,20 +104,8 @@ class MenuRenderer(IRenderer):
         return None
     
     def start_background_transition(self) -> None:
-        """Start transition to next background."""
-        if self._fade_active or len(self._backgrounds) <= 1:
-            return
-        
-        # Choose next background (different from current)
-        self._next_bg_index = (self._current_bg_index + random.randint(1, len(self._backgrounds) - 1)) % len(self._backgrounds)
-        self._next_bg = self._backgrounds[self._next_bg_index].copy()
-        self._next_bg.set_alpha(0)
-        
-        self._fade_active = True
-        self._fade_start_time = pg.time.get_ticks()
-        
-        # Play next music track
-        self._play_music(self._next_bg_index)
+        """Disabled: transitions have been removed as only one background is used."""
+        return
     
     def render(self, surface: pg.Surface) -> None:
         """Render menu to surface."""
@@ -145,17 +113,9 @@ class MenuRenderer(IRenderer):
         if surface.get_size() != self._screen_size:
             self.update_screen_size(surface.get_width(), surface.get_height())
         
-        # Update fade transition
-        if self._fade_active:
-            self._update_fade()
-        
-        # Draw current background
-        if self._current_bg:
-            surface.blit(self._current_bg, (0, 0))
-        
-        # Draw fade transition
-        if self._fade_active and self._next_bg:
-            surface.blit(self._next_bg, (0, 0))
+        # Draw background
+        if self._background:
+            surface.blit(self._background, (0, 0))
         
         # Draw menu items
         self._render_menu_items(surface)
@@ -164,8 +124,8 @@ class MenuRenderer(IRenderer):
         """Update renderer for new screen dimensions."""
         self._screen_size = (width, height)
         
-        # Rescale backgrounds
-        self._rescale_backgrounds()
+        # Rescale background
+        self._rescale_background()
         
         # Re-layout menu items
         self._layout_items()
@@ -205,50 +165,29 @@ class MenuRenderer(IRenderer):
             # Ignore missing/invalid sound files
             pass
 
-        # ------------- Load backgrounds -------------
+        # ------------- Load background -------------
         menu_path = Path(AssetPaths.MENU_IMAGES)
-        for bg_file in MENU_BACKGROUNDS:
-            try:
-                bg_path = menu_path / bg_file
-                if bg_path.exists():
-                    bg = pg.image.load(str(bg_path)).convert()
-                    self._backgrounds.append(bg)
-            except pg.error:
-                pass
-        
-        # Ensure at least one background
-        if not self._backgrounds:
-            # Create gradient background as fallback
-            fallback = pg.Surface(self._screen_size)
+        bg_path = menu_path / MENU_BACKGROUND
+        try:
+            if bg_path.exists():
+                bg = pg.image.load(str(bg_path)).convert()
+            else:
+                raise FileNotFoundError
+        except (pg.error, FileNotFoundError):
+            # Fallback gradient background if image missing
+            bg = pg.Surface(self._screen_size)
             for y in range(self._screen_size[1]):
-                color_value = int(50 + (y / self._screen_size[1]) * 50)
-                pg.draw.line(fallback, (color_value, 0, color_value), (0, y), (self._screen_size[0], y))
-            self._backgrounds.append(fallback)
-        
-        # Set initial background
-        self._current_bg_index = random.randrange(len(self._backgrounds))
-        self._rescale_backgrounds()
-        
+                c = int(50 + (y / self._screen_size[1]) * 50)
+                pg.draw.line(bg, (c, 0, c), (0, y), (self._screen_size[0], y))
+        self._background = pg.transform.scale(bg, self._screen_size)
+
         # Start initial music
-        self._play_music(self._current_bg_index)
+        self._play_music()
     
-    def _rescale_backgrounds(self) -> None:
-        """Rescale all backgrounds to current screen size."""
-        scaled_bgs = []
-        
-        for original_bg in self._backgrounds:
-            scaled = pg.transform.scale(original_bg, self._screen_size)
-            scaled_bgs.append(scaled)
-        
-        # Update current background
-        if self._current_bg_index < len(scaled_bgs):
-            self._current_bg = scaled_bgs[self._current_bg_index]
-        
-        # Update fade transition if active
-        if self._fade_active and self._next_bg_index < len(scaled_bgs):
-            alpha = self._next_bg.get_alpha() if self._next_bg else 0
-            self._next_bg = scaled_bgs[self._next_bg_index].copy()
-            self._next_bg.set_alpha(alpha)
+    def _rescale_background(self) -> None:
+        """Rescale background to current screen size."""
+        if self._background:
+            self._background = pg.transform.scale(self._background, self._screen_size)
     
     def _layout_items(self) -> None:
         """Calculate menu item positions."""
@@ -328,36 +267,14 @@ class MenuRenderer(IRenderer):
                 self._hover_sound.play()
         self._last_hovered_item = hovered_item
     
-    def _update_fade(self) -> None:
-        """Update background fade transition."""
-        if not self._fade_active or not self._next_bg:
-            return
-        
-        # Calculate fade progress
-        elapsed = pg.time.get_ticks() - self._fade_start_time
-        progress = min(1.0, elapsed / self._fade_duration)
-        alpha = int(255 * progress)
-        
-        self._next_bg.set_alpha(alpha)
-        
-        # Check if fade complete
-        if progress >= 1.0:
-            self._current_bg_index = self._next_bg_index
-            self._current_bg = self._backgrounds[self._current_bg_index]
-            self._fade_active = False
-            self._next_bg = None
+
     
-    def _play_music(self, index: int) -> None:
-        """Play menu music track."""
-        if index >= len(MENU_MUSIC_TRACKS):
-            return
-        
-        music_path = Path(AssetPaths.MENU_SOUNDS) / MENU_MUSIC_TRACKS[index]
-        
+    def _play_music(self) -> None:
+        """Play (looping) menu music track."""
+        music_path = Path(AssetPaths.MENU_SOUNDS) / MENU_MUSIC_TRACK
         try:
             if music_path.exists():
                 pg.mixer.music.load(str(music_path))
-                pg.mixer.music.play()
-                pg.mixer.music.set_endevent(self.MUSIC_END_EVENT)
+                pg.mixer.music.play(-1)  # Loop indefinitely
         except pg.error:
             pass  # Silently ignore music errors

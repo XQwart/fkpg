@@ -7,8 +7,8 @@
     "block": 102
   },
   "display": {
-    "vsync": true,
-    "fps_limit": 60,
+    "vsync": false,
+    "fps_limit": 240,
     "fullscreen": true,
     "window_width": 1280,
     "window_height": 720

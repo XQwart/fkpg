@@ -226,7 +226,13 @@ class Player(Character):
             self.velocity.y = JUMP_SPEED  # pixels per second
             self.on_ground = False
             self._jump_requested = False
-            self._enter_state(PlayerState.JUMP)
+            # Trigger jump animation only if not currently attacking
+            if self._current_state not in {
+                PlayerState.ATTACK_LIGHT_1,
+                PlayerState.ATTACK_LIGHT_2,
+                PlayerState.ATTACK_HEAVY,
+            }:
+                self._enter_state(PlayerState.JUMP)
         
         # Apply gravity
         if not self.on_ground:
