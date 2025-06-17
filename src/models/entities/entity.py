@@ -4,7 +4,7 @@ from __future__ import annotations
 from typing import Optional
 import pygame as pg
 
-from src.models.entities.base_entity import StaticEntity
+from src.models.entities.abstract_entity import StaticEntity
 from src.core.exceptions import EntityError
 
 

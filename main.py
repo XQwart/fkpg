@@ -24,7 +24,7 @@ def main() -> None:
         pg.init()
         pg.mixer.init()
         
-        # Create configuration
+        # Create configurationabstract_entity.py
         config = Config()
         
         # Create display

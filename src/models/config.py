@@ -130,13 +130,22 @@ class Config:
         self._display.vsync = not self._display.vsync
         self._recreate_display()
     
-    def cycle_fps_limit(self) -> None:
-        """Cycle through available FPS limits."""
+    def cycle_fps_limit(self, forward: bool = True) -> None:
+        """Cycle through available FPS limits.
+
+        Args:
+            forward: If True cycle to the next (higher) FPS value, otherwise cycle
+                to the previous (lower) FPS value. Defaults to True to preserve
+                original behaviour.
+        """
         if self._display.vsync:
             return
-        
+
         current_index = ALLOWED_FPS_VALUES.index(self._display.fps_limit)
-        next_index = (current_index + 1) % len(ALLOWED_FPS_VALUES)
+        if forward:
+            next_index = (current_index + 1) % len(ALLOWED_FPS_VALUES)
+        else:
+            next_index = (current_index - 1) % len(ALLOWED_FPS_VALUES)
         self._display.fps_limit = ALLOWED_FPS_VALUES[next_index]
     
     def set_music_volume(self, volume: float) -> None:

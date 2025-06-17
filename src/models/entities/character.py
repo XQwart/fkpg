@@ -6,7 +6,7 @@ from typing import Optional
 from pathlib import Path
 import pygame as pg
 
-from src.models.entities.base_entity import DynamicEntity
+from src.models.entities.abstract_entity import DynamicEntity
 from src.core.exceptions import ResourceError
 
 

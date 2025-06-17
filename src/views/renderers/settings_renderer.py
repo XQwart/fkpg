@@ -4,8 +4,9 @@ from __future__ import annotations
 from typing import List, Tuple, Optional, Dict, Any
 from enum import Enum
 import pygame as pg
+from pathlib import Path
 
-from src.core.constants import UIConstants, BACKGROUND_COLOR
+from src.core.constants import UIConstants, BACKGROUND_COLOR, AssetPaths
 from src.core.interfaces import IRenderer
 
 
@@ -43,6 +44,9 @@ class SettingsRenderer(IRenderer):
         """Initialize settings renderer."""
         self._screen_size = (800, 600)
         self._font: Optional[pg.font.Font] = None
+        # Background image
+        self._background: Optional[pg.Surface] = None
+        self._bg_scaled: Optional[pg.Surface] = None
         
         # Settings items
         self._items: List[SettingItem] = []
@@ -83,22 +87,23 @@ class SettingsRenderer(IRenderer):
         if surface.get_size() != self._screen_size:
             self.update_screen_size(surface.get_width(), surface.get_height())
         
-        # Clear background
-        surface.fill(BACKGROUND_COLOR)
-        
-        # Draw title
-        self._draw_title(surface)
+        # Draw background
+        if self._bg_scaled:
+            surface.blit(self._bg_scaled, (0, 0))
+        else:
+            surface.fill(BACKGROUND_COLOR)
         
         # Draw settings items
         self._draw_items(surface)
-        
-        # Draw instructions
-        self._draw_instructions(surface)
     
     def update_screen_size(self, width: int, height: int) -> None:
         """Update renderer for new screen dimensions."""
         self._screen_size = (width, height)
         self._layout_items()
+
+        # Rescale background if loaded
+        if self._background:
+            self._bg_scaled = pg.transform.smoothscale(self._background, self._screen_size)
     
     def format_value(self, item: SettingItem) -> str:
         """Format setting value for display."""
@@ -125,6 +130,15 @@ class SettingsRenderer(IRenderer):
     def _initialize(self) -> None:
         """Initialize renderer assets."""
         self._font = pg.font.Font(None, UIConstants.FONT_SIZE_MEDIUM)
+
+        # Load background image
+        try:
+            bg_path = Path(AssetPaths.MENU_IMAGES) / "settings_background.png"
+            if bg_path.exists():
+                self._background = pg.image.load(str(bg_path)).convert()
+                self._bg_scaled = pg.transform.smoothscale(self._background, self._screen_size)
+        except Exception as e:
+            print(f"Failed to load settings background: {e}")
     
     def _layout_items(self) -> None:
         """Calculate item positions."""
@@ -200,15 +214,10 @@ class SettingsRenderer(IRenderer):
             text_rect = text_surface.get_rect(center=item.rect.center)
             surface.blit(text_surface, text_rect)
             
-            # Draw slider bar for slider types
-            if item.setting_type == SettingType.SLIDER and item.value is not None:
-                self._draw_slider_bar(surface, item)
     
     def _draw_slider_bar(self, surface: pg.Surface, item: SettingItem) -> None:
         """Draw slider bar for slider settings."""
-        # Draw below the text
-        bar_width = 200
-        bar_height = 8
+        pass
         bar_x = item.rect.centerx - bar_width // 2
         bar_y = item.rect.bottom + 5
         

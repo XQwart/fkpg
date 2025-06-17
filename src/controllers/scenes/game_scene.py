@@ -62,6 +62,10 @@ class GameScene(BaseScene):
         # Game state
         self._paused = False
         self._debug_mode = False
+
+        # Respawn handling
+        self._pending_respawn: bool = False
+        self._respawn_timer: float = 0.0
         
         # Cache manager
         self._cache_manager = get_cache_manager()
@@ -112,6 +116,14 @@ class GameScene(BaseScene):
         
         # Don't update if paused or dialog active
         if self._paused or self._dialog_overlay.is_visible():
+            return
+
+        # If waiting to respawn, count down and skip other updates
+        if self._pending_respawn:
+            self._respawn_timer -= delta_time
+            if self._respawn_timer <= 0:
+                self._respawn_player()
+                self._pending_respawn = False
             return
         
         # Update entities (this will call player's custom update method)
@@ -178,6 +190,27 @@ class GameScene(BaseScene):
         if hasattr(self._level, 'cleanup'):
             self._level.cleanup()
     
+    def _respawn_player(self) -> None:
+        """Respawn the player at the level spawn point and grant brief invulnerability."""
+        spawn = self._level.spawn_point
+        # Reset position & physics
+        self._player.position.update(spawn.x, spawn.y)
+        self._player.velocity.update(0, 0)
+        self._player.rect.center = (int(spawn.x), int(spawn.y))
+
+        # Reset state/health
+        self._player._health = self._player._max_health  # pylint: disable=protected-access
+        self._player._is_alive = True                    # pylint: disable=protected-access
+        self._player.set_invulnerable(1.0)
+
+        # Ensure player animation/state resets
+        if hasattr(self._player, '_enter_state'):
+            try:
+                from src.models.entities.player import PlayerState  # local import to avoid cycles
+                self._player._enter_state(PlayerState.IDLE)         # pylint: disable=protected-access
+            except Exception:  # noqa: BLE001
+                pass
+
     def _create_input_mapping(self) -> None:
         """Create input action mappings."""
         kb = self.config.key_bindings
@@ -309,8 +342,13 @@ class GameScene(BaseScene):
 
         # 5. Hazard collision
         if pg.sprite.spritecollide(player, hazard_tiles, dokill=False):
-            if not player.is_invulnerable:
-                player.take_damage(10)
+            if not self._pending_respawn and not player.is_invulnerable:
+                # Inflict lethal damage to trigger death animation/state
+                player.take_damage(player._health)  # pylint: disable=protected-access
+                # Start respawn countdown (allow death animation to play)
+                self._pending_respawn = True
+                self._respawn_timer = 1.0  # seconds to wait before respawn
+            return
     
     def _check_triggers(self) -> None:
         """Check for trigger tile activation."""

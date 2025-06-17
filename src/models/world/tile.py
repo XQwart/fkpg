@@ -5,7 +5,7 @@ from typing import Optional, Dict, Any
 from dataclasses import dataclass
 import pygame as pg
 
-from src.models.entities.base_entity import StaticEntity
+from src.models.entities.abstract_entity import StaticEntity
 
 
 @dataclass

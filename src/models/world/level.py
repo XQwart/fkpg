@@ -164,7 +164,7 @@ class Level:
     @property
     def spawn_point(self) -> pg.math.Vector2:
         """Get default spawn point."""
-        return self._spawn_points.get('default', pg.math.Vector2(100, 100))
+        return self._spawn_points.get('default', pg.math.Vector2(500, 950))
     
     @property
     def bounds(self) -> pg.Rect:

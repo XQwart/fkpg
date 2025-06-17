@@ -33,8 +33,8 @@ DOUBLE_CLICK_THRESHOLD_MS: Final[int] = 250
 # UI constants
 HUD_PADDING: Final[int] = 50
 HUD_ELEMENT_MARGIN: Final[int] = 10
-DIALOG_TEXT_BOX_HEIGHT_RATIO: Final[float] = 0.33
-DIALOG_PADDING: Final[int] = 50
+DIALOG_TEXT_BOX_HEIGHT_RATIO: Final[float] = 0.30
+DIALOG_PADDING: Final[int] = 40
 
 # Visual constants
 BACKGROUND_COLOR: Final[tuple[int, int, int]] = (50, 50, 70)
@@ -88,9 +88,9 @@ class AssetPaths:
 class PlayerConstants:
     """Player-specific constants."""
     
-    MAX_HEALTH: int = 100
+    MAX_HEALTH: int = 3
     MAX_MANA: int = 100
-    MAX_HEARTS_DISPLAY: int = 10
+    MAX_HEARTS_DISPLAY: int = 3
     SPRITE_SIZE: tuple[int, int] = (64, 64)
     BLOCK_DAMAGE_REDUCTION: float = 0.5
     
@@ -128,8 +128,8 @@ class UIConstants:
     ICON_SIZE: tuple[int, int] = (24, 24)
     
     # Dialog dimensions
-    PORTRAIT_SIZE_DIALOG: tuple[int, int] = (150, 150)
-    NAME_BOX_WIDTH: int = 250
+    PORTRAIT_SIZE_DIALOG: tuple[int, int] = (160, 160)
+    NAME_BOX_WIDTH: int = 280
     NAME_BOX_HEIGHT: int = 50
     
     # Menu

@@ -5,7 +5,7 @@ from typing import Optional
 import pygame as pg
 
 from src.core.constants import CAMERA_LERP_FACTOR
-from src.models.entities.base_entity import BaseEntity
+from src.models.entities.abstract_entity import BaseEntity
 
 
 class Camera:

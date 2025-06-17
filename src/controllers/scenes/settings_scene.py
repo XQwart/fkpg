@@ -51,12 +51,19 @@ class SettingsScene(BaseScene):
                         self._apply_key_binding(identifier, event.key)
                         self._renderer.set_waiting_for_key(None)
             
-            elif event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
+            elif event.type == pg.MOUSEBUTTONDOWN and event.button in (1, 3):
                 if not self._renderer.is_waiting_for_key():
-                    # Check setting item clicks
+                    # Determine which setting item (if any) was clicked
                     item = self._renderer.get_item_at_position(event.pos)
-                    if item:
-                        self._handle_item_click(item)
+                    if item is None:
+                        continue
+
+                    # Allow right-click only for FPS and Volume sliders
+                    if event.button == 3 and item.identifier not in ("fps", "volume"):
+                        continue  # Ignore right-click for other items
+
+                    forward = (event.button == 1)  # Left = increase, Right = decrease
+                    self._handle_item_click(item, forward)
         
         return None
     
@@ -126,7 +133,7 @@ class SettingsScene(BaseScene):
             elif item.identifier == "volume":
                 item.value = self.config.audio.music_volume
     
-    def _handle_item_click(self, item: SettingItem) -> None:
+    def _handle_item_click(self, item: SettingItem, forward: bool = True) -> None:
         """Handle click on setting item."""
         if item.setting_type == SettingType.KEY_BINDING:
             # Start waiting for key
@@ -138,12 +145,18 @@ class SettingsScene(BaseScene):
         
         elif item.setting_type == SettingType.SLIDER:
             if item.identifier == "fps" and not self.config.display.vsync:
-                self.config.cycle_fps_limit()
+                self.config.cycle_fps_limit(forward)
             elif item.identifier == "volume":
-                # Cycle volume in steps
-                new_volume = self.config.audio.music_volume + VOLUME_STEP
+                # Adjust volume up/down in steps
+                step = VOLUME_STEP if forward else -VOLUME_STEP
+                new_volume = self.config.audio.music_volume + step
+                # Round to 1 decimal to avoid precision issues (e.g., 0.999...)
+                new_volume = round(new_volume, 1)
+                # Wrap-around to keep within 0..1 inclusive
                 if new_volume > 1.0:
                     new_volume = 0.0
+                elif new_volume < 0.0:
+                    new_volume = 1.0
                 self.config.set_music_volume(new_volume)
         
         elif item.setting_type == SettingType.ACTION:

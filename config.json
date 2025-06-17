@@ -7,14 +7,14 @@
     "block": 102
   },
   "display": {
-    "vsync": false,
-    "fps_limit": 240,
+    "vsync": true,
+    "fps_limit": 60,
     "fullscreen": true,
     "window_width": 1280,
     "window_height": 720
   },
   "audio": {
-    "music_volume": 0.4,
+    "music_volume": 0.5,
     "sound_volume": 0.7
   }
 }
